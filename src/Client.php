@@ -4,24 +4,11 @@ namespace GuzzleHttp;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Promise;
 use GuzzleHttp\Psr7;
-use Psr\Http\Message\UriInterface;
+use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\UriInterface;
 
-/**
- * @method ResponseInterface get(string|UriInterface $uri, array $options = [])
- * @method ResponseInterface head(string|UriInterface $uri, array $options = [])
- * @method ResponseInterface put(string|UriInterface $uri, array $options = [])
- * @method ResponseInterface post(string|UriInterface $uri, array $options = [])
- * @method ResponseInterface patch(string|UriInterface $uri, array $options = [])
- * @method ResponseInterface delete(string|UriInterface $uri, array $options = [])
- * @method Promise\PromiseInterface getAsync(string|UriInterface $uri, array $options = [])
- * @method Promise\PromiseInterface headAsync(string|UriInterface $uri, array $options = [])
- * @method Promise\PromiseInterface putAsync(string|UriInterface $uri, array $options = [])
- * @method Promise\PromiseInterface postAsync(string|UriInterface $uri, array $options = [])
- * @method Promise\PromiseInterface patchAsync(string|UriInterface $uri, array $options = [])
- * @method Promise\PromiseInterface deleteAsync(string|UriInterface $uri, array $options = [])
- */
 class Client implements ClientInterface
 {
     /** @var array Default request options */
@@ -75,21 +62,13 @@ class Client implements ClientInterface
         $this->configureDefaults($config);
     }
 
-    public function __call($method, $args)
+    public function sendRequest(RequestInterface $request): ResponseInterface
     {
-        if (count($args) < 1) {
-            throw new \InvalidArgumentException('Magic request methods require a URI and optional options array');
-        }
-
-        $uri = $args[0];
-        $opts = isset($args[1]) ? $args[1] : [];
-
-        return substr($method, -5) === 'Async'
-            ? $this->requestAsync(substr($method, 0, -5), $uri, $opts)
-            : $this->request($method, $uri, $opts);
+        $options[RequestOptions::SYNCHRONOUS] = true;
+        return $this->sendAsync($request, $options)->wait();
     }
 
-    public function sendAsync(RequestInterface $request, array $options = [])
+    public function sendAsync(RequestInterface $request, array $options = []): Promise\PromiseInterface
     {
         // Merge the base URI into the request URI if needed.
         $options = $this->prepareDefaults($options);
@@ -100,37 +79,6 @@ class Client implements ClientInterface
         );
     }
 
-    public function send(RequestInterface $request, array $options = [])
-    {
-        $options[RequestOptions::SYNCHRONOUS] = true;
-        return $this->sendAsync($request, $options)->wait();
-    }
-
-    public function requestAsync($method, $uri = '', array $options = [])
-    {
-        $options = $this->prepareDefaults($options);
-        // Remove request modifying parameter because it can be done up-front.
-        $headers = isset($options['headers']) ? $options['headers'] : [];
-        $body = isset($options['body']) ? $options['body'] : null;
-        $version = isset($options['version']) ? $options['version'] : '1.1';
-        // Merge the URI into the base URI.
-        $uri = $this->buildUri($uri, $options);
-        if (is_array($body)) {
-            $this->invalidBody();
-        }
-        $request = new Psr7\Request($method, $uri, $headers, $body, $version);
-        // Remove the option so that they are not doubly-applied.
-        unset($options['headers'], $options['body'], $options['version']);
-
-        return $this->transfer($request, $options);
-    }
-
-    public function request($method, $uri = '', array $options = [])
-    {
-        $options[RequestOptions::SYNCHRONOUS] = true;
-        return $this->requestAsync($method, $uri, $options)->wait();
-    }
-
     public function getConfig($option = null)
     {
         return $option === null
@@ -138,7 +86,7 @@ class Client implements ClientInterface
             : (isset($this->config[$option]) ? $this->config[$option] : null);
     }
 
-    private function buildUri($uri, array $config)
+    private function buildUri($uri, array $config): UriInterface
     {
         // for BC we accept null which would otherwise fail in uri_for
         $uri = Psr7\uri_for($uri === null ? '' : $uri);
@@ -210,7 +158,7 @@ class Client implements ClientInterface
      *
      * @return array
      */
-    private function prepareDefaults($options)
+    private function prepareDefaults(array $options): array
     {
         $defaults = $this->config;
 
@@ -218,18 +166,6 @@ class Client implements ClientInterface
             // Default headers are only added if they are not present.
             $defaults['_conditional'] = $defaults['headers'];
             unset($defaults['headers']);
-        }
-
-        // Special handling for headers is required as they are added as
-        // conditional headers and as headers passed to a request ctor.
-        if (array_key_exists('headers', $options)) {
-            // Allows default headers to be unset.
-            if ($options['headers'] === null) {
-                $defaults['_conditional'] = null;
-                unset($options['headers']);
-            } elseif (!is_array($options['headers'])) {
-                throw new \InvalidArgumentException('headers must be an array');
-            }
         }
 
         // Shallow merge defaults underneath options.
@@ -256,7 +192,7 @@ class Client implements ClientInterface
      *
      * @return Promise\PromiseInterface
      */
-    private function transfer(RequestInterface $request, array $options)
+    private function transfer(RequestInterface $request, array $options): Promise\PromiseInterface
     {
         // save_to -> sink
         if (isset($options['save_to'])) {

@@ -1,6 +1,8 @@
 <?php
+
 namespace GuzzleHttp\Exception;
 
+use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestInterface;
 
 /**
@@ -8,30 +10,42 @@ use Psr\Http\Message\RequestInterface;
  *
  * Note that no response is present for a ConnectException
  */
-class ConnectException extends RequestException
+class ConnectException extends \RuntimeException implements NetworkExceptionInterface
 {
+    /** @var RequestInterface */
+    private $request;
+
     public function __construct(
         $message,
         RequestInterface $request,
-        \Exception $previous = null,
-        array $handlerContext = []
+        \Exception $previous = null
     ) {
-        parent::__construct($message, $request, null, $previous, $handlerContext);
+        parent::__construct($message, 0, $previous);
+        $this->request = $request;
     }
 
     /**
-     * @return null
+     * Wrap non-RequestExceptions with a RequestException
+     *
+     * @param RequestInterface $request
+     * @param \Exception $e
+     *
+     * @return ConnectException
      */
-    public function getResponse()
+    public static function wrapException(RequestInterface $request, \Exception $e)
     {
-        return null;
+        return $e instanceof ConnectException
+            ? $e
+            : new ConnectException($e->getMessage(), $request, $e);
     }
 
     /**
-     * @return bool
+     * Get the request that caused the exception
+     *
+     * @return RequestInterface
      */
-    public function hasResponse()
+    public function getRequest(): RequestInterface
     {
-        return false;
+        return $this->request;
     }
 }

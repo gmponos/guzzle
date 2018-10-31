@@ -45,32 +45,6 @@ final class Middleware
     }
 
     /**
-     * Middleware that throws exceptions for 4xx or 5xx responses when the
-     * "http_error" request option is set to true.
-     *
-     * @return callable Returns a function that accepts the next handler.
-     */
-    public static function httpErrors()
-    {
-        return function (callable $handler) {
-            return function ($request, array $options) use ($handler) {
-                if (empty($options['http_errors'])) {
-                    return $handler($request, $options);
-                }
-                return $handler($request, $options)->then(
-                    function (ResponseInterface $response) use ($request) {
-                        $code = $response->getStatusCode();
-                        if ($code < 400) {
-                            return $response;
-                        }
-                        throw RequestException::create($request, $response);
-                    }
-                );
-            };
-        };
-    }
-
-    /**
      * Middleware that pushes history data to an ArrayAccess container.
      *
      * @param array|\ArrayAccess $container Container to hold the history (by reference).

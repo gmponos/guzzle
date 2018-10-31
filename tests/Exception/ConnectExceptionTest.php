@@ -6,7 +6,7 @@ use GuzzleHttp\Psr7\Request;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers GuzzleHttp\Exception\ConnectException
+ * @covers \GuzzleHttp\Exception\ConnectException
  */
 class ConnectExceptionTest extends TestCase
 {

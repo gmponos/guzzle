@@ -166,9 +166,7 @@ class CurlFactory implements CurlFactoryInterface
                 new RequestException(
                     'An error was encountered during the on_headers event',
                     $easy->request,
-                    $easy->response,
-                    $easy->onHeadersException,
-                    $ctx
+                    $easy->onHeadersException
                 )
             );
         }
@@ -180,12 +178,7 @@ class CurlFactory implements CurlFactoryInterface
             'see https://curl.haxx.se/libcurl/c/libcurl-errors.html'
         );
 
-        // Create a connection exception if it was a specific error code.
-        $error = isset($connectionErrors[$easy->errno])
-            ? new ConnectException($message, $easy->request, null, $ctx)
-            : new RequestException($message, $easy->request, $easy->response, null, $ctx);
-
-        return \GuzzleHttp\Promise\rejection_for($error);
+        return \GuzzleHttp\Promise\rejection_for(new ConnectException($message, $easy->request));
     }
 
     private function getDefaultConf(EasyHandle $easy)

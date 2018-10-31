@@ -8,26 +8,16 @@ use GuzzleHttp\Psr7\Stream;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers GuzzleHttp\Exception\RequestException
+ * @covers \GuzzleHttp\Exception\RequestException
  */
 class RequestExceptionTest extends TestCase
 {
     public function testHasRequestAndResponse()
     {
         $req = new Request('GET', '/');
-        $res = new Response(200);
-        $e = new RequestException('foo', $req, $res);
+        $e = new RequestException('foo', $req);
         $this->assertSame($req, $e->getRequest());
-        $this->assertSame($res, $e->getResponse());
-        $this->assertTrue($e->hasResponse());
         $this->assertEquals('foo', $e->getMessage());
-    }
-
-    public function testCreatesGenerateException()
-    {
-        $e = RequestException::create(new Request('GET', '/'));
-        $this->assertEquals('Error completing request', $e->getMessage());
-        $this->assertInstanceOf('GuzzleHttp\Exception\RequestException', $e);
     }
 
     public function testCreatesClientErrorResponseException()
