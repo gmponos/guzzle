@@ -13,7 +13,7 @@ use Psr\Http\Message\UriInterface;
  * Request redirect middleware.
  *
  * Apply this middleware like other middleware using
- * {@see GuzzleHttp\Middleware::redirect()}.
+ * {@see \GuzzleHttp\Middleware::redirect()}.
  */
 class RedirectMiddleware
 {
@@ -190,7 +190,8 @@ class RedirectMiddleware
             $modify['body'] = '';
         }
 
-        $modify['uri'] = $this->redirectUri($request, $response, $protocols);
+        $uri = $this->redirectUri($request, $response, $protocols);
+        $modify['uri'] = _idn_uri_convert($uri, $options);
         Psr7\rewind_body($request);
 
         // Add the Referer header if it is told to do so and only

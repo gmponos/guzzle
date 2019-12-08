@@ -1,10 +1,12 @@
 <?php
 namespace GuzzleHttp;
 
+use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Handler\CurlHandler;
 use GuzzleHttp\Handler\CurlMultiHandler;
 use GuzzleHttp\Handler\Proxy;
 use GuzzleHttp\Handler\StreamHandler;
+use Psr\Http\Message\UriInterface;
 
 /**
  * Expands a URI template
@@ -343,4 +345,41 @@ function json_encode($value, $options = 0, $depth = 512)
 function _current_time()
 {
     return function_exists('hrtime') ? hrtime(true) / 1e9 : microtime(true);
+}
+
+
+function _idn_uri_convert(UriInterface $uri, array $options) {
+    if ($uri->getHost() && isset($options['idn_conversion']) && ($options['idn_conversion'] !== false)) {
+        $idnOptions = ($options['idn_conversion'] === true) ? IDNA_DEFAULT : $options['idn_conversion'];
+
+        $asciiHost = idn_to_ascii($uri->getHost(), $idnOptions, INTL_IDNA_VARIANT_UTS46, $info);
+        if ($asciiHost === false) {
+            $errorBitSet = isset($info['errors']) ? $info['errors'] : 0;
+
+            $errorConstants = array_filter(array_keys(get_defined_constants()), function ($name) {
+                return substr($name, 0, 11) === 'IDNA_ERROR_';
+            });
+
+            $errors = [];
+            foreach ($errorConstants as $errorConstant) {
+                if ($errorBitSet & constant($errorConstant)) {
+                    $errors[] = $errorConstant;
+                }
+            }
+
+            $errorMessage = 'IDN conversion failed';
+            if ($errors) {
+                $errorMessage .= ' (errors: ' . implode(', ', $errors) . ')';
+            }
+
+            throw new InvalidArgumentException($errorMessage);
+        } else {
+            if ($uri->getHost() !== $asciiHost) {
+                // Replace URI only if the ASCII version is different
+                $uri = $uri->withHost($asciiHost);
+            }
+        }
+    }
+
+    return $uri;
 }
