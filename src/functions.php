@@ -348,7 +348,16 @@ function _current_time()
 }
 
 
-function _idn_uri_convert(UriInterface $uri, array $options) {
+/**
+ * Wrapper for the hrtime() or microtime() functions
+ * (depending on the PHP version, one of the two is used)
+ *
+ * @param mixed[] $options
+ * @return UriInterface
+ * @internal
+ */
+function _idn_uri_convert(UriInterface $uri, array $options)
+{
     if ($uri->getHost() && isset($options['idn_conversion']) && ($options['idn_conversion'] !== false)) {
         $idnOptions = ($options['idn_conversion'] === true) ? IDNA_DEFAULT : $options['idn_conversion'];
 
