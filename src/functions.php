@@ -349,19 +349,14 @@ function _current_time()
 
 
 /**
- * Wrapper for the hrtime() or microtime() functions
- * (depending on the PHP version, one of the two is used)
- *
- * @param mixed[] $options
+ * @param int $options
  * @return UriInterface
  * @internal
  */
-function _idn_uri_convert(UriInterface $uri, array $options)
+function _idn_uri_convert(UriInterface $uri, $options = IDNA_DEFAULT)
 {
-    if ($uri->getHost() && isset($options['idn_conversion']) && ($options['idn_conversion'] !== false)) {
-        $idnOptions = ($options['idn_conversion'] === true) ? IDNA_DEFAULT : $options['idn_conversion'];
-
-        $asciiHost = idn_to_ascii($uri->getHost(), $idnOptions, INTL_IDNA_VARIANT_UTS46, $info);
+    if ($uri->getHost()) {
+        $asciiHost = idn_to_ascii($uri->getHost(), $options, INTL_IDNA_VARIANT_UTS46, $info);
         if ($asciiHost === false) {
             $errorBitSet = isset($info['errors']) ? $info['errors'] : 0;
 
