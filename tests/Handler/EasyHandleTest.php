@@ -1,8 +1,10 @@
 <?php
+
+declare(strict_types=1);
+
 namespace GuzzleHttp\Test\Handler;
 
 use GuzzleHttp\Handler\EasyHandle;
-use GuzzleHttp\Psr7;
 use PHPUnit\Framework\TestCase;
 
 /**
